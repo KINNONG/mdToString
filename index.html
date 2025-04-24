@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Markdown转模板字符串工具</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f8f9fa;
+        color: #333;
+      }
+      h1 {
+        text-align: center;
+        color: #2c3e50;
+        margin-bottom: 30px;
+      }
+      .container {
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+      }
+      .row {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      @media (min-width: 768px) {
+        .row {
+          flex-direction: row;
+        }
+        .col {
+          flex: 1;
+        }
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+        color: #2c3e50;
+      }
+      textarea {
+        width: 100%;
+        min-height: 300px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 10px;
+        font-family: monospace;
+        resize: vertical;
+      }
+      button {
+        background-color: #3498db;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: background-color 0.2s;
+      }
+      button:hover {
+        background-color: #2980b9;
+      }
+      .btn-group {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin: 20px 0;
+      }
+      .result {
+        margin-top: 20px;
+      }
+      footer {
+        margin-top: 40px;
+        text-align: center;
+        color: #7f8c8d;
+        font-size: 14px;
+      }
+      .tabs {
+        display: flex;
+        border-bottom: 1px solid #ddd;
+        margin-bottom: 20px;
+      }
+      .tab {
+        padding: 10px 20px;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+      }
+      .tab.active {
+        border-bottom: 2px solid #3498db;
+        font-weight: bold;
+      }
+      .tab-content {
+        display: none;
+      }
+      .tab-content.active {
+        display: block;
+      }
+      .file-upload {
+        border: 2px dashed #ddd;
+        border-radius: 4px;
+        padding: 20px;
+        text-align: center;
+        margin-bottom: 20px;
+        cursor: pointer;
+      }
+      .file-upload:hover {
+        border-color: #3498db;
+      }
+      .file-input {
+        display: none;
+      }
+      .file-list {
+        margin-top: 20px;
+      }
+      .file-item {
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin-bottom: 10px;
+        display: flex;
+        justify-content: space-between;
+      }
+      .file-name {
+        font-weight: bold;
+      }
+      .result-container {
+        margin-top: 20px;
+      }
+      .result-item {
+        margin-bottom: 20px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 10px;
+      }
+      .result-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        padding-bottom: 5px;
+        border-bottom: 1px solid #ddd;
+      }
+      .download-all {
+        margin-top: 10px;
+      }
+      .error {
+        color: #e74c3c;
+        margin-top: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Markdown转模板字符串工具</h1>
+    <div class="container">
+      <div class="tabs">
+        <div class="tab active" data-tab="text">文本输入</div>
+        <div class="tab" data-tab="file">单文件上传</div>
+        <div class="tab" data-tab="batch">批量上传</div>
+      </div>
+
+      <!-- 文本输入选项卡 -->
+      <div class="tab-content active" id="text-tab">
+        <div class="row">
+          <div class="col">
+            <div class="form-group">
+              <label for="markdownInput">Markdown 输入:</label>
+              <textarea id="markdownInput" placeholder="在此粘贴您的Markdown文本..."></textarea>
+            </div>
+          </div>
+          <div class="col">
+            <div class="form-group">
+              <label for="stringOutput">模板字符串输出:</label>
+              <textarea id="stringOutput" placeholder="转换后的结果会显示在这里..." readonly></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="btn-group">
+          <button id="convertBtn">转换</button>
+          <button id="copyBtn">复制结果</button>
+          <button id="clearBtn">清除</button>
+        </div>
+      </div>
+
+      <!-- 单文件上传选项卡 -->
+      <div class="tab-content" id="file-tab">
+        <div class="file-upload" id="singleFileUpload">
+          <p>点击或拖拽 Markdown 文件到此处上传</p>
+          <input type="file" id="singleFileInput" class="file-input" accept=".md" />
+        </div>
+        <div id="singleFileInfo" class="file-list" style="display: none">
+          <div class="file-item">
+            <span class="file-name" id="singleFileName"></span>
+            <button id="removeSingleFile">移除</button>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col">
+            <div class="form-group">
+              <label for="singleFileContent">文件内容:</label>
+              <textarea id="singleFileContent" placeholder="文件内容会显示在这里..." readonly></textarea>
+            </div>
+          </div>
+          <div class="col">
+            <div class="form-group">
+              <label for="singleFileOutput">转换结果:</label>
+              <textarea id="singleFileOutput" placeholder="转换后的结果会显示在这里..." readonly></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="btn-group">
+          <button id="singleFileConvertBtn" disabled>转换</button>
+          <button id="singleFileCopyBtn" disabled>复制结果</button>
+          <button id="singleFileDownloadBtn" disabled>下载结果</button>
+        </div>
+      </div>
+
+      <!-- 批量上传选项卡 -->
+      <div class="tab-content" id="batch-tab">
+        <div class="file-upload" id="batchFileUpload">
+          <p>点击或拖拽多个 Markdown 文件到此处上传（最多10个）</p>
+          <input type="file" id="batchFileInput" class="file-input" accept=".md" multiple />
+        </div>
+        <div id="batchFileError" class="error" style="display: none"></div>
+        <div id="batchFileList" class="file-list" style="display: none"></div>
+        <div class="btn-group">
+          <button id="batchConvertBtn" disabled>批量转换</button>
+          <button id="batchClearBtn" disabled>清除所有</button>
+        </div>
+        <div id="batchResults" class="result-container"></div>
+        <button id="downloadAllBtn" class="download-all" style="display: none">打包下载所有结果</button>
+      </div>
+    </div>
+    <footer>
+      <p>基于 <a href="https://github.com/your-username/mdToString" target="_blank">mdToString</a> 工具</p>
+    </footer>
+
+    <script>
+      // 核心转换函数
+      function markdownToString(markdown) {
+        if (!markdown || typeof markdown !== "string") {
+          return "``";
+        }
+
+        // 转义反引号和模板字符串插值语法
+        let result = markdown
+          .replace(/`/g, "\\`") // 转义反引号
+          .replace(/\${/g, "\\${"); // 转义模板字符串变量插值语法
+
+        // 生成模板字符串
+        return `\`${result}\``;
+      }
+
+      // 页面加载完成后设置事件监听
+      document.addEventListener("DOMContentLoaded", function () {
+        // 选项卡切换功能
+        const tabs = document.querySelectorAll(".tab");
+        const tabContents = document.querySelectorAll(".tab-content");
+
+        tabs.forEach((tab) => {
+          tab.addEventListener("click", () => {
+            const tabId = tab.getAttribute("data-tab");
+
+            // 更新活动选项卡
+            tabs.forEach((t) => t.classList.remove("active"));
+            tab.classList.add("active");
+
+            // 更新活动内容
+            tabContents.forEach((content) => {
+              content.classList.remove("active");
+            });
+            document.getElementById(`${tabId}-tab`).classList.add("active");
+          });
+        });
+
+        // 文本输入选项卡的功能
+        const markdownInput = document.getElementById("markdownInput");
+        const stringOutput = document.getElementById("stringOutput");
+        const convertBtn = document.getElementById("convertBtn");
+        const copyBtn = document.getElementById("copyBtn");
+        const clearBtn = document.getElementById("clearBtn");
+
+        // 转换按钮点击事件
+        convertBtn.addEventListener("click", function () {
+          const markdown = markdownInput.value;
+          const result = markdownToString(markdown);
+          stringOutput.value = result;
+        });
+
+        // 复制按钮点击事件
+        copyBtn.addEventListener("click", function () {
+          stringOutput.select();
+          document.execCommand("copy");
+          alert("已复制到剪贴板！");
+        });
+
+        // 清除按钮点击事件
+        clearBtn.addEventListener("click", function () {
+          markdownInput.value = "";
+          stringOutput.value = "";
+        });
+
+        // 单文件上传功能
+        const singleFileUpload = document.getElementById("singleFileUpload");
+        const singleFileInput = document.getElementById("singleFileInput");
+        const singleFileInfo = document.getElementById("singleFileInfo");
+        const singleFileName = document.getElementById("singleFileName");
+        const removeSingleFile = document.getElementById("removeSingleFile");
+        const singleFileContent = document.getElementById("singleFileContent");
+        const singleFileOutput = document.getElementById("singleFileOutput");
+        const singleFileConvertBtn = document.getElementById("singleFileConvertBtn");
+        const singleFileCopyBtn = document.getElementById("singleFileCopyBtn");
+        const singleFileDownloadBtn = document.getElementById("singleFileDownloadBtn");
+
+        let currentSingleFile = null;
+
+        // 点击上传区域触发文件选择
+        singleFileUpload.addEventListener("click", function () {
+          singleFileInput.click();
+        });
+
+        // 文件拖放功能
+        singleFileUpload.addEventListener("dragover", function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          singleFileUpload.style.borderColor = "#3498db";
+        });
+
+        singleFileUpload.addEventListener("dragleave", function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          singleFileUpload.style.borderColor = "#ddd";
+        });
+
+        singleFileUpload.addEventListener("drop", function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          singleFileUpload.style.borderColor = "#ddd";
+
+          if (e.dataTransfer.files.length > 0) {
+            const file = e.dataTransfer.files[0];
+            if (file.name.endsWith(".md")) {
+              handleSingleFile(file);
+            } else {
+              alert("请上传 Markdown (.md) 文件！");
+            }
+          }
+        });
+
+        // 监听文件选择
+        singleFileInput.addEventListener("change", function () {
+          if (singleFileInput.files.length > 0) {
+            const file = singleFileInput.files[0];
+            handleSingleFile(file);
+          }
+        });
+
+        // 处理单个文件上传
+        function handleSingleFile(file) {
+          currentSingleFile = file;
+          singleFileName.textContent = file.name;
+          singleFileInfo.style.display = "block";
+
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            const content = e.target.result;
+            singleFileContent.value = content;
+            singleFileConvertBtn.disabled = false;
+          };
+          reader.readAsText(file);
+        }
+
+        // 移除单个文件
+        removeSingleFile.addEventListener("click", function () {
+          currentSingleFile = null;
+          singleFileInfo.style.display = "none";
+          singleFileContent.value = "";
+          singleFileOutput.value = "";
+          singleFileInput.value = "";
+          singleFileConvertBtn.disabled = true;
+          singleFileCopyBtn.disabled = true;
+          singleFileDownloadBtn.disabled = true;
+        });
+
+        // 单文件转换按钮
+        singleFileConvertBtn.addEventListener("click", function () {
+          if (singleFileContent.value) {
+            const result = markdownToString(singleFileContent.value);
+            singleFileOutput.value = result;
+            singleFileCopyBtn.disabled = false;
+            singleFileDownloadBtn.disabled = false;
+          }
+        });
+
+        // 单文件复制结果
+        singleFileCopyBtn.addEventListener("click", function () {
+          singleFileOutput.select();
+          document.execCommand("copy");
+          alert("已复制到剪贴板！");
+        });
+
+        // 单文件下载结果
+        singleFileDownloadBtn.addEventListener("click", function () {
+          if (currentSingleFile && singleFileOutput.value) {
+            const fileName = currentSingleFile.name.replace(".md", ".js");
+            const content = `module.exports = ${singleFileOutput.value};`;
+            downloadFile(fileName, content);
+          }
+        });
+
+        // 批量上传功能
+        const batchFileUpload = document.getElementById("batchFileUpload");
+        const batchFileInput = document.getElementById("batchFileInput");
+        const batchFileList = document.getElementById("batchFileList");
+        const batchFileError = document.getElementById("batchFileError");
+        const batchConvertBtn = document.getElementById("batchConvertBtn");
+        const batchClearBtn = document.getElementById("batchClearBtn");
+        const batchResults = document.getElementById("batchResults");
+        const downloadAllBtn = document.getElementById("downloadAllBtn");
+
+        const batchFiles = [];
+
+        // 点击上传区域触发文件选择
+        batchFileUpload.addEventListener("click", function () {
+          batchFileInput.click();
+        });
+
+        // 批量文件拖放功能
+        batchFileUpload.addEventListener("dragover", function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          batchFileUpload.style.borderColor = "#3498db";
+        });
+
+        batchFileUpload.addEventListener("dragleave", function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          batchFileUpload.style.borderColor = "#ddd";
+        });
+
+        batchFileUpload.addEventListener("drop", function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          batchFileUpload.style.borderColor = "#ddd";
+
+          const files = Array.from(e.dataTransfer.files);
+          const mdFiles = files.filter((file) => file.name.endsWith(".md"));
+
+          if (mdFiles.length === 0) {
+            alert("请上传 Markdown (.md) 文件！");
+            return;
+          }
+
+          handleBatchFiles(mdFiles);
+        });
+
+        // 监听批量文件选择
+        batchFileInput.addEventListener("change", function () {
+          if (batchFileInput.files.length > 0) {
+            const files = Array.from(batchFileInput.files);
+            handleBatchFiles(files);
+          }
+        });
+
+        // 处理批量文件
+        function handleBatchFiles(files) {
+          batchFileError.style.display = "none";
+
+          // 检查文件数量限制
+          if (batchFiles.length + files.length > 10) {
+            batchFileError.textContent = "最多只能上传10个文件！";
+            batchFileError.style.display = "block";
+            return;
+          }
+
+          // 添加新文件到列表
+          files.forEach((file) => {
+            if (!batchFiles.some((f) => f.name === file.name)) {
+              batchFiles.push(file);
+            }
+          });
+
+          updateBatchFileList();
+        }
+
+        // 更新批量文件列表显示
+        function updateBatchFileList() {
+          batchFileList.innerHTML = "";
+
+          if (batchFiles.length > 0) {
+            batchFileList.style.display = "block";
+            batchConvertBtn.disabled = false;
+            batchClearBtn.disabled = false;
+
+            batchFiles.forEach((file, index) => {
+              const fileItem = document.createElement("div");
+              fileItem.className = "file-item";
+
+              const fileName = document.createElement("span");
+              fileName.className = "file-name";
+              fileName.textContent = file.name;
+
+              const removeBtn = document.createElement("button");
+              removeBtn.textContent = "移除";
+              removeBtn.addEventListener("click", function () {
+                batchFiles.splice(index, 1);
+                updateBatchFileList();
+              });
+
+              fileItem.appendChild(fileName);
+              fileItem.appendChild(removeBtn);
+              batchFileList.appendChild(fileItem);
+            });
+          } else {
+            batchFileList.style.display = "none";
+            batchConvertBtn.disabled = true;
+            batchClearBtn.disabled = true;
+          }
+        }
+
+        // 批量转换按钮
+        batchConvertBtn.addEventListener("click", function () {
+          if (batchFiles.length === 0) return;
+
+          batchResults.innerHTML = "";
+          const results = [];
+          let processed = 0;
+
+          batchFiles.forEach((file, index) => {
+            const reader = new FileReader();
+
+            reader.onload = function (e) {
+              const content = e.target.result;
+              const result = markdownToString(content);
+
+              results[index] = {
+                fileName: file.name,
+                original: content,
+                converted: result,
+              };
+
+              processed++;
+
+              if (processed === batchFiles.length) {
+                displayBatchResults(results);
+              }
+            };
+
+            reader.readAsText(file);
+          });
+        });
+
+        // 显示批量转换结果
+        function displayBatchResults(results) {
+          results.forEach((result, index) => {
+            const resultItem = document.createElement("div");
+            resultItem.className = "result-item";
+
+            const resultHeader = document.createElement("div");
+            resultHeader.className = "result-header";
+
+            const fileName = document.createElement("div");
+            fileName.className = "file-name";
+            fileName.textContent = result.fileName;
+
+            const actionBtns = document.createElement("div");
+
+            const copyBtn = document.createElement("button");
+            copyBtn.textContent = "复制";
+            copyBtn.addEventListener("click", function () {
+              copyToClipboard(result.converted);
+            });
+
+            const downloadBtn = document.createElement("button");
+            downloadBtn.textContent = "下载";
+            downloadBtn.addEventListener("click", function () {
+              const fileName = result.fileName.replace(".md", ".js");
+              const content = `module.exports = ${result.converted};`;
+              downloadFile(fileName, content);
+            });
+
+            actionBtns.appendChild(copyBtn);
+            actionBtns.appendChild(downloadBtn);
+
+            resultHeader.appendChild(fileName);
+            resultHeader.appendChild(actionBtns);
+
+            const resultContent = document.createElement("textarea");
+            resultContent.readOnly = true;
+            resultContent.value = result.converted;
+
+            resultItem.appendChild(resultHeader);
+            resultItem.appendChild(resultContent);
+
+            batchResults.appendChild(resultItem);
+          });
+
+          downloadAllBtn.style.display = "block";
+        }
+
+        // 批量清除按钮
+        batchClearBtn.addEventListener("click", function () {
+          batchFiles.length = 0;
+          batchFileList.innerHTML = "";
+          batchFileList.style.display = "none";
+          batchResults.innerHTML = "";
+          batchFileInput.value = "";
+          batchConvertBtn.disabled = true;
+          batchClearBtn.disabled = true;
+          downloadAllBtn.style.display = "none";
+        });
+
+        // 打包下载所有结果
+        downloadAllBtn.addEventListener("click", function () {
+          if (batchFiles.length === 0) return;
+
+          // 在实际应用中，这里应该使用JSZip等库来创建zip文件
+          // 此处仅提供一个简化的实现，为每个文件生成下载
+          batchFiles.forEach((file, index) => {
+            const fileName = file.name.replace(".md", ".js");
+            const content = `module.exports = ${markdownToString(
+              document.querySelectorAll("#batchResults textarea")[index].value
+            )};`;
+
+            // 添加延迟避免浏览器阻止多个下载
+            setTimeout(() => {
+              downloadFile(fileName, content);
+            }, index * 500);
+          });
+        });
+
+        // 辅助函数：复制到剪贴板
+        function copyToClipboard(text) {
+          const textarea = document.createElement("textarea");
+          textarea.value = text;
+          document.body.appendChild(textarea);
+          textarea.select();
+          document.execCommand("copy");
+          document.body.removeChild(textarea);
+          alert("已复制到剪贴板！");
+        }
+
+        // 辅助函数：下载文件
+        function downloadFile(fileName, content) {
+          const blob = new Blob([content], { type: "text/javascript" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }
+      });
+    </script>
+  </body>
+</html>
