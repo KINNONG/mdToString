@@ -3,7 +3,8 @@
  * 主要处理：
  * 1. 转义所有反引号(`)为 \`
  * 2. 转义所有${为 \${
- * 3. 将处理后的文本包装在反引号中
+ * 3. 将HTML img标签转换为Markdown图片语法
+ * 4. 将处理后的文本包装在反引号中
  *
  * @param {string} markdown - Markdown格式的文本
  * @returns {string} - 转换后的JavaScript模板字符串
@@ -14,8 +15,21 @@ function markdownToString(markdown) {
     return "``";
   }
 
+  // 将HTML img标签转换为Markdown图片语法
+  let processedMarkdown = markdown.replace(
+    /<img\s+src=["']([^"']+)["']\s+alt=["']([^"']*)["'][^>]*\/?>/gi,
+    "![$2]($1)"
+  );
+  processedMarkdown = processedMarkdown.replace(
+    /<img\s+alt=["']([^"']*)["']\s+src=["']([^"']+)["'][^>]*\/?>/gi,
+    "![$1]($2)"
+  );
+
+  // 如果没有alt属性，则使用空的替代文本
+  processedMarkdown = processedMarkdown.replace(/<img\s+src=["']([^"']+)["'][^>]*\/?>/gi, "![]($1)");
+
   // 转义反引号和模板字符串插值语法
-  let result = markdown
+  let result = processedMarkdown
     .replace(/`/g, "\\`") // 转义反引号
     .replace(/\${/g, "\\${"); // 转义模板字符串变量插值语法
 

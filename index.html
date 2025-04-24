@@ -248,8 +248,21 @@
           return "``";
         }
 
+        // 将HTML img标签转换为Markdown图片语法
+        let processedMarkdown = markdown.replace(
+          /<img\s+src=["']([^"']+)["']\s+alt=["']([^"']*)["'][^>]*\/?>/gi,
+          "![$2]($1)"
+        );
+        processedMarkdown = processedMarkdown.replace(
+          /<img\s+alt=["']([^"']*)["']\s+src=["']([^"']+)["'][^>]*\/?>/gi,
+          "![$1]($2)"
+        );
+
+        // 如果没有alt属性，则使用空的替代文本
+        processedMarkdown = processedMarkdown.replace(/<img\s+src=["']([^"']+)["'][^>]*\/?>/gi, "![]($1)");
+
         // 转义反引号和模板字符串插值语法
-        let result = markdown
+        let result = processedMarkdown
           .replace(/`/g, "\\`") // 转义反引号
           .replace(/\${/g, "\\${"); // 转义模板字符串变量插值语法
 
